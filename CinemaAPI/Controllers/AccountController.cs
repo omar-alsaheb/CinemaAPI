@@ -50,14 +50,19 @@ namespace CinemaAPI.Controllers
                 {
                     Email = model.Email,
                     PasswordHash = model.Password,
-                    UserName = model.UserName
+                    UserName = model.UserName,
+                    PhoneNumber = model.PhoneNumber,
+                    Country = model.Country,
                 };
                 var result = await userManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
                 {
                     var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
                     var confirmationLink = Url.Action("RegisterConfirm", "Account", new
-                    { ID = user.Id, Token = HttpUtility.UrlEncode(token) }, Request.Scheme);
+                    {
+                        ID = user.Id,
+                        Token = HttpUtility.UrlEncode(token)
+                    }, Request.Scheme);
                     return Ok(confirmationLink);
 
                 }
@@ -112,19 +117,26 @@ namespace CinemaAPI.Controllers
             {
                 return NotFound();
             }
+            var id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (id != null)
+            {
+                return BadRequest("user logged in");
+            }
             var result = await signInManager.PasswordSignInAsync(email, loginModel.Password, loginModel.RememberMe, true);
             if (result.Succeeded)
             {
                 if (await roleManager.RoleExistsAsync("User"))
                 {
-                    if (await userManager.IsInRoleAsync(email, "User"))
+                    if (!await userManager.IsInRoleAsync(email, "User") && !await roleManager.RoleExistsAsync("Admin"))
                     {
                         await userManager.AddToRoleAsync(email, "User");
                     }
                 }
                 var roleName = await GetRoleNameByIdUser(email.Id);
-                if (roleName != null) { AddCookies(email.UserName, roleName, email.Id, loginModel.RememberMe,email.Email); }
-               
+                if (roleName != null)
+                {
+                    AddCookies(email.UserName, roleName, email.Id, loginModel.RememberMe, email.Email);
+                }
 
                 return Ok(result);
             }
@@ -186,16 +198,16 @@ namespace CinemaAPI.Controllers
                 await roleManager.CreateAsync(role);
             }
         }
-        public async void AddCookies(string username, string roleName, string userId, bool remember,string email)
+        public async void AddCookies(string username, string roleName, string userId, bool remember, string email)
         {
 
             var claim = new List<Claim> {
-          new Claim(ClaimTypes.Name, username),
-                    new Claim(ClaimTypes.Email, email),
+        new Claim(ClaimTypes.Name, username),
+        new Claim(ClaimTypes.Email, email),
 
-          new Claim(ClaimTypes.NameIdentifier,userId),
-          new Claim(ClaimTypes.Role, roleName),
-            };
+        new Claim(ClaimTypes.NameIdentifier, userId),
+        new Claim(ClaimTypes.Role, roleName),
+      };
 
             var claimIdentity = new ClaimsIdentity(claim, CookieAuthenticationDefaults.AuthenticationScheme);
             if (remember)
@@ -236,7 +248,7 @@ namespace CinemaAPI.Controllers
             if (user != null)
             {
                 var userRole = await db.UserRoles.FirstOrDefaultAsync(x => x.UserId == user.Id);
-                if (userRole !=null)
+                if (userRole != null)
                 {
                     return await db.Roles.Where(x => x.Id == userRole.RoleId).Select(x => x.Name).FirstOrDefaultAsync();
                 }
@@ -244,9 +256,9 @@ namespace CinemaAPI.Controllers
             return null;
         }
 
-        //[Authorize]
+        [Authorize(Roles = "Admin")]
         [HttpGet("CheckUserClaims/{email}&{role}")]
-        public  IActionResult CheckUserClaims(string email,string role)
+        public IActionResult CheckUserClaims(string email, string role)
         {
             var userEmail = User.FindFirst(ClaimTypes.Email)?.Value;
             var id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -260,12 +272,32 @@ namespace CinemaAPI.Controllers
 
                 }
             }
-         return StatusCode(StatusCodes.Status203NonAuthoritative);
+            return StatusCode(StatusCodes.Status203NonAuthoritative);
 
+        }
+
+        [HttpGet("UserExists")]
+        public async Task<IActionResult> UserExists(string username)
+        {
+            var exist = await db.Users.AnyAsync(x => x.UserName == username);
+            if (exist)
+            {
+                //return StatusCode(StatusCodes.Status200OK);
+                return Ok(exist);
+            }
+            return BadRequest();
+        }
+
+        [HttpGet("EmailExists")]
+        public async Task<IActionResult> EmailExists(string email)
+        {
+            var exist = await db.Users.AnyAsync(x => x.Email == email);
+            if (exist)
+            {
+                return Ok();
+            }
+            return BadRequest();
         }
 
     }
 };
-
-    
-

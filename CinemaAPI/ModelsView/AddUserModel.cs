@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace CinemaAPI.ModelsView
 {
-    public class RegisterModel
+    public class AddUserModel
     {
-        [StringLength(256),Required,DataType(DataType.EmailAddress)]
+        [StringLength(256), Required, DataType(DataType.EmailAddress)]
         public string Email { get; set; }
 
         [Required]
@@ -17,9 +17,5 @@ namespace CinemaAPI.ModelsView
         public string UserName { get; set; }
         public string PhoneNumber { get; set; }
         public string Country { get; set; }
-        
-
-
-
     }
 }
