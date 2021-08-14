@@ -56,8 +56,10 @@ namespace CinemaAPI
             {
                 op.Cookie.HttpOnly = true;
                 op.ExpireTimeSpan = TimeSpan.FromMinutes(30);
-                op.LogoutPath = "/Account/logout";
+                op.LogoutPath = "/Account/Logout";
                 op.SlidingExpiration = true;
+                //op.Cookie.SameSite = SameSiteMode.Lax;
+                //op.Cookie.IsEssential = true;
             });
 
             services.AddCors();

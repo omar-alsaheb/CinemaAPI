@@ -68,7 +68,7 @@ namespace CinemaAPI.Controllers
                 }
 
             };
-            return NotFound();
+            return BadRequest("User Name already exists");
         }
 
         private bool EmailExist(string email)
@@ -127,7 +127,7 @@ namespace CinemaAPI.Controllers
             {
                 if (await roleManager.RoleExistsAsync("User"))
                 {
-                    if (!await userManager.IsInRoleAsync(email, "User") && !await roleManager.RoleExistsAsync("Admin"))
+                    if (!await userManager.IsInRoleAsync(email, "User") && !await userManager.IsInRoleAsync(email, "Admin"))
                     {
                         await userManager.AddToRoleAsync(email, "User");
                     }
@@ -135,6 +135,9 @@ namespace CinemaAPI.Controllers
                 var roleName = await GetRoleNameByIdUser(email.Id);
                 if (roleName != null)
                 {
+                    //HttpContext.Response.Cookies.Append(
+                    //"name", "value",
+                    //new CookieOptions() { SameSite = SameSiteMode.Lax });
                     AddCookies(email.UserName, roleName, email.Id, loginModel.RememberMe, email.Email);
                 }
 
@@ -156,7 +159,7 @@ namespace CinemaAPI.Controllers
             return null;
         }
 
-        //[Authorize(Roles ="Admin")]
+        //[Authorize(Roles = "Admin")]
         [HttpGet("GetAllUsers")]
         public async Task<ActionResult<IEnumerable<ApplicationUser>>> GetAllUsers()
         {
@@ -299,5 +302,6 @@ namespace CinemaAPI.Controllers
             return BadRequest();
         }
 
+      
     }
 };
