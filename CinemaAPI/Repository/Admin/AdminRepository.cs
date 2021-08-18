@@ -1,10 +1,13 @@
 ﻿using CinemaAPI.Models;
 using CinemaAPI.ModelsView;
 using CinemaAPI.ModelsView.Users;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -15,12 +18,16 @@ namespace CinemaAPI.Repository.Admin
         private readonly ApplicationDb db;
         private readonly UserManager<ApplicationUser> userManager;
         private readonly RoleManager<ApplicationRole> roleManager;
+        [Obsolete]
+        private readonly IHostingEnvironment hosting;
 
-        public AdminRepository(ApplicationDb _db, UserManager<ApplicationUser> _userManager,RoleManager<ApplicationRole> _roleManager)
+        [Obsolete]
+        public AdminRepository(ApplicationDb _db, UserManager<ApplicationUser> _userManager, RoleManager<ApplicationRole> _roleManager,IHostingEnvironment _hosting)
         {
             db = _db;
             userManager = _userManager;
             roleManager = _roleManager;
+            hosting = _hosting;
         }
 
         public async Task<ApplicationUser> AddUser(AddUserModel userModel)
@@ -48,7 +55,7 @@ namespace CinemaAPI.Repository.Admin
                     }
                 }
 
-                    return user;
+                return user;
             }
             return null;
         }
@@ -57,7 +64,7 @@ namespace CinemaAPI.Repository.Admin
 
         public async Task<ApplicationUser> GetUser(string id)
         {
-            if (id==null)
+            if (id == null)
             {
                 return null;
             }
@@ -111,16 +118,16 @@ namespace CinemaAPI.Repository.Admin
 
         public async Task<ApplicationUser> DeleteUser(string id)
         {
-            
+
 
             if (id == null)
             {
                 return null;
             }
             var userId = await db.Users.Where(x => x.Id == id).SingleOrDefaultAsync();
-            if(userId == null)
+            if (userId == null)
             {
-                
+
             }
             db.Remove(userId);
             await db.SaveChangesAsync();
@@ -149,8 +156,8 @@ namespace CinemaAPI.Repository.Admin
             List<UsersRolesModel> usersRolesModels = new List<UsersRolesModel>();
             if (query.Count > 0)
             {
-           
-                for (int i=0; i<query.Count;i++)
+
+                for (int i = 0; i < query.Count; i++)
                 {
                     var model = new UsersRolesModel
                     {
@@ -161,15 +168,222 @@ namespace CinemaAPI.Repository.Admin
                     };
                     usersRolesModels.Add(model);
                 }
-               
+
             }
             return usersRolesModels;
-          
+
         }
 
         public async Task<IEnumerable<ApplicationRole>> GetAllRoleAsync()
         {
             return await db.Roles.ToListAsync();
+        }
+
+        //public async Task<bool> EditUserRoleAsync1(EditUserRoleModel editUserRoleModel)
+        //{
+
+        //    if (editUserRoleModel.RoleId == null || editUserRoleModel.UserId == null)
+        //    {
+
+        //        return false;
+        //    }
+
+        //    var user = db.Users.FirstOrDefaultAsync(x => x.Id == editUserRoleModel.UserId);
+        //    if (user == null)
+        //    {
+        //        return false;
+        //    }
+
+        //    var currentRoleId = await db.UserRoles.Where(x => x.UserId == editUserRoleModel.UserId).Select(x => x.RoleId).FirstOrDefaultAsync();
+        //    var currentRoleName = await db.Roles.Where(x => x.Id == currentRoleId).Select(x => x.Name).FirstOrDefaultAsync();
+        //    var newRoleName = await db.Roles.Where(x => x.Id == editUserRoleModel.RoleId).Select(x => x.Name).FirstOrDefaultAsync();
+
+        //    if (await userManager.IsInRoleAsync(user, currentRoleName))
+        //    {
+        //        var x = await userManager.RemoveFromRoleAsync(user, currentRoleName);
+        //        if (x.Succeeded)
+        //        {
+        //            var s = await userManager.AddToRoleAsync(user, newRoleName);
+        //            if (s.Succeeded)
+        //            {
+        //                return true;
+        //            }
+        //        }
+
+        //        return false;
+        //    }
+        //}
+
+
+        public async Task<bool> EditUserRoleAsync(EditUserRoleModel model)
+        {
+            if (model.UserId == null || model.RoleId == null)
+            {
+                return false;
+            }
+
+            var user = await db.Users.FirstOrDefaultAsync(x => x.Id == model.UserId);
+            if (user == null)
+            {
+                return false;
+            }
+
+            var currentRoleId = await db.UserRoles.Where(x => x.UserId == model.UserId).Select(x => x.RoleId).FirstOrDefaultAsync();
+            var currentRoleName = await db.Roles.Where(x => x.Id == currentRoleId).Select(x => x.Name).FirstOrDefaultAsync();
+            var newRoleName = await db.Roles.Where(x => x.Id == model.RoleId).Select(x => x.Name).FirstOrDefaultAsync();
+
+            if (await userManager.IsInRoleAsync(user, currentRoleName))
+            {
+                var x = await userManager.RemoveFromRoleAsync(user, currentRoleName);
+                if (x.Succeeded)
+                {
+                    var s = await userManager.AddToRoleAsync(user, newRoleName);
+                    if (s.Succeeded)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        public async Task<IEnumerable<Category>> GetCategories()
+        {
+            return await db.Category.ToListAsync();
+        }
+
+        public async Task<Category> AddNewCategory(Category category)
+        {
+            var newCat = new Category
+            {
+                CategoryName = category.CategoryName
+            };
+
+            db.Category.Add(newCat);
+            await db.SaveChangesAsync();
+            return newCat;
+
+        }
+
+        public async Task<Category> UpdateCategory(Category categoryPar)
+        {
+            if (categoryPar == null || categoryPar.Id < 1)
+            {
+                return null;
+            }
+            var category = await db.Category.FirstOrDefaultAsync(x => x.Id == categoryPar.Id);
+            if (category == null)
+            {
+                return null;
+
+            }
+
+            db.Category.Attach(category);
+            category.CategoryName = categoryPar.CategoryName;
+            db.Entry(category).Property(x => x.CategoryName).IsModified = true;
+            await db.SaveChangesAsync();
+            return category;
+        }
+
+        public async Task<bool> DeleteCategory(int id)
+        {   
+            
+            var categoryId = await db.Category.FirstOrDefaultAsync(x => x.Id == id);
+            if (categoryId==null)
+            {
+                return false;
+            }
+
+            db.Category.Remove(categoryId);
+            await db.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<SubCategory> AddSubCategory(SubCategory model)
+        {
+            var subCategory = new SubCategory
+            {
+                SubCategoryName = model.SubCategoryName,
+                CategoryId = model.CategoryId
+            };
+        
+            db.SubCategory.Add(subCategory);
+            await db.SaveChangesAsync();
+            return subCategory;
+
+        }
+
+        public async Task<IEnumerable<SubCategory>> GetSubCategory()
+        {
+            var getSubCat = await db.SubCategory.Include(x => x.category).ToListAsync();
+            return getSubCat;
+        }
+
+        public async Task<bool> DeleteSubCategory(int id)
+        {
+          
+            var subId = await db.SubCategory.FirstOrDefaultAsync(x => x.Id == id);
+            if (subId == null)
+            {
+                return false;
+            }
+            db.SubCategory.Remove(subId);
+           await db.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<SubCategory> EditSubCategory(SubCategory model)
+        {
+
+            if (model == null || model.Id < 1)
+            {
+                return null;
+            }
+            var subCat = await db.SubCategory.FirstOrDefaultAsync(x => x.Id == model.Id);
+            if (subCat == null)
+            {
+                return null;
+            }
+            db.SubCategory.Attach(subCat);
+            subCat.SubCategoryName = model.SubCategoryName;
+            subCat.CategoryId = model.CategoryId;
+
+            db.Entry(subCat).Property(x => x.SubCategoryName).IsModified = true;
+            db.Entry(subCat).Property(x => x.CategoryId).IsModified = true;
+
+            await db.SaveChangesAsync();
+
+            return subCat;
+
+
+        }
+
+        [Obsolete]
+        public async Task<Actor> AddActorAsync(string actorName, IFormFile img)
+        {
+            var filePath = Path.Combine(hosting.WebRootPath + "/images/actors/" + img.FileName);
+            using (FileStream fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                await img.CopyToAsync(fileStream);
+            }
+            var actor = new Actor
+            {
+                ActorName = actorName,
+                ActorPicture = img.FileName
+            };
+            db.Actor.Add(actor);
+            await db.SaveChangesAsync();
+            return actor;
+        }
+
+        public async Task<IEnumerable<Actor>> GetActorsAsync()
+        {
+           return await db.Actor.ToListAsync();
+        }
+
+        public Task<Actor> GetAcortId(int id)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -81,8 +81,7 @@ namespace CinemaAPI
             app.UseHttpsRedirection();
 
             app.UseRouting();
-                      
-          
+            app.UseStaticFiles();
             app.UseCookiePolicy();
             app.UseAuthentication();
             app.UseAuthorization();

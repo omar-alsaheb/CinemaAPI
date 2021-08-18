@@ -14,5 +14,16 @@ namespace CinemaAPI.Models
         {
 
         }
+
+        public DbSet<Category> Category { get; set; }
+        public DbSet<SubCategory> SubCategory { get; set; }
+        public DbSet<MovieLink> MovieLink { get; set; }
+        public DbSet<MovieActor> MovieActor { get; set; }
+        public DbSet<Actor> Actor { get; set; }
+
+        public DbSet<Movie> Movie { get; set; }
+
+
+
     }
 }
