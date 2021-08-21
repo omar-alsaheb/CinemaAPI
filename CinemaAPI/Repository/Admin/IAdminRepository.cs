@@ -37,5 +37,7 @@ namespace CinemaAPI.Repository.Admin
         Task<Actor> AddActorAsync(string actorName, IFormFile img);
         Task<IEnumerable<Actor>> GetActorsAsync();
         public Task<Actor> GetAcortId(int id);
+        Task<Actor> EditActor(int id, string actName, IFormFile img);
+        Task<IList<Movie>> GetMoviesAsync();
     }
 }

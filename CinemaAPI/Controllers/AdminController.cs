@@ -308,6 +308,61 @@ namespace CinemaAPI.Controllers
             }
         }
 
+        [HttpGet("GetAcor/{id}")]
+        public async Task<ActionResult<Actor>> GetActor(int id)
+        {
+            if (id <0)
+            {
+                return NotFound();
+            }
+            var actor = await adminRepository.GetAcortId(id);
+
+            return actor;
+        }
+
+        [HttpPut("EditActor")]
+        public async Task<ActionResult<Actor>> EditActor()
+        {
+
+            try
+            {
+                var actName = HttpContext.Request.Form["actorName"].ToString();
+                int actId = int.Parse(HttpContext.Request.Form["id"].ToString());
+                var img = HttpContext.Request.Form.Files["image"];
+                if (!string.IsNullOrEmpty(actName) && img !=null && img.Length >0)
+                {
+                    var actor = await adminRepository.EditActor(actId, actName, img);
+                    if (actor !=null)
+                    {
+                        return Ok(actor);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+
+                return BadRequest(ex.Message);
+            }
+
+            return BadRequest();
+        }
+
+
+        [HttpGet("GetMovies")]
+        public async Task<IEnumerable<Movie>> GetMovies()
+        {
+
+            var movies = await adminRepository.GetMoviesAsync();
+            if (movies == null)
+            {
+                return null;
+            }
+            else
+            {
+                return movies;
+            }
+        }
+
 
     }
 

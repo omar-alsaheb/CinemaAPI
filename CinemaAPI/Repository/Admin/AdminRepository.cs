@@ -383,7 +383,48 @@ namespace CinemaAPI.Repository.Admin
 
         public Task<Actor> GetAcortId(int id)
         {
-            throw new NotImplementedException();
+            var actorId = db.Actor.FirstOrDefaultAsync(x => x.Id == id);
+            if (actorId == null)
+            {
+                return null;
+            }
+            return actorId;
+        }
+
+        [Obsolete]
+        public async Task<Actor> EditActor(int id, string actName, IFormFile img)
+        {
+            var actor = await db.Actor.FirstOrDefaultAsync(x => x.Id == id);
+
+            if (actor == null)
+            {
+                return null;
+            }
+
+            db.Attach(actor);
+            actor.ActorName = actName;
+            if (img != null && img.FileName.ToLower() != actor.ActorPicture.ToLower())
+            {
+                var filePath = Path.Combine(hosting.WebRootPath + "/images/actors/" + img.FileName);
+                using (FileStream fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await img.CopyToAsync(fileStream);
+                }
+                actor.ActorPicture = img.FileName;
+                db.Entry(actor).Property(x => x.ActorPicture).IsModified = true;
+
+            }
+            db.Entry(actor).Property(x => x.ActorName).IsModified = true;
+            await db.SaveChangesAsync();
+            return actor;
+            {
+
+            }
+        }
+
+        public async Task<IList<Movie>> GetMoviesAsync()
+        {
+            return await db.Movie.OrderByDescending(x => x.Id).Include(x => x.subCategory).ToListAsync();
         }
     }
 }
